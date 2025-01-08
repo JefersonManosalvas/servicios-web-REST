@@ -1,102 +1,97 @@
 const express = require('express');
-const fs = require('fs');
+
 const app = express();
+const PORT = 3000;
+
 app.use(express.json());
 
-const DB_FILE = 'usuarios.json';
-
-// Función para leer la "base de datos"
-const readDB = () => {
-    if (!fs.existsSync(DB_FILE)) {
-        fs.writeFileSync(DB_FILE, JSON.stringify([]));
-    }
-    return JSON.parse(fs.readFileSync(DB_FILE));
-};
-
-// Función para escribir en la "base de datos"
-const writeDB = (data) => {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-};
-
-// Ruta para obtener todos los usuarios
-app.get('/users', (req, res) => {
-    const usuarios = readDB();
-    res.json(usuarios);
+// Configurar manualmente los encabezados CORS para permitir solicitudes
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Permite todas las orígenes
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Métodos permitidos
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Encabezados permitidos
+    next();
 });
 
-// Ruta para crear un nuevo usuario
-app.post('/users/:name/:id', (req, res) => {
-    const { name, id } = req.params;
+// Manejar solicitudes preflight (OPTIONS)
+app.options('*', (req, res) => {
+    res.sendStatus(204); // No Content
+});
 
-    // Validar que el id sea un número
-    if (isNaN(id)) {
-        return res.status(400).json({ error: 'El ID debe ser un número válido.' });
+let fruterias = [];
+
+// Obtener todas las frutas (GET)
+app.get('/frutas', (req, res) => {
+    res.json(fruterias);
+});
+
+// Crear una nueva fruta (POST) - Ahora recibimos los datos por el cuerpo de la solicitud
+// Crear una nueva fruta (POST) - Recibir los datos por la URL
+app.post('/frutas', (req, res) => {
+    const { nombre, cantidad } = req.query;
+
+    if (!nombre || !cantidad) {
+        return res.status(400).json({ message: 'Faltan datos de la fruta' });
     }
 
-    const usuarios = readDB();
-    const nuevoUsuario = {
-        id: parseInt(id),
-        name,
+    const fruta = {
+        id: fruterias.length + 1,
+        nombre,
+        cantidad: parseInt(cantidad, 10) // Convertir la cantidad a un número entero
     };
 
-    usuarios.push(nuevoUsuario);
-    writeDB(usuarios);
-
-    res.status(201).json({
-        message: 'Usuario creado',
-        user: nuevoUsuario,
-    });
+    fruterias.push(fruta);
+    res.json(fruta);
 });
 
-// Ruta para actualizar un usuario por id
-app.put('/users/:id', (req, res) => {
-    const { id } = req.params;
-    const { name } = req.body;
+// Actualizar una fruta por ID utilizando query string en la URL (PUT)
+app.put('/frutas/editar', (req, res) => {
+    const { id, nombre, cantidad } = req.query;  // Obtiene los parámetros de la query string
 
-    // Validar que el id sea un número
-    if (isNaN(id)) {
-        return res.status(400).json({ error: 'El ID debe ser un número válido.' });
+    // Verificar que se han proporcionado los datos necesarios
+    if (!id || !nombre || !cantidad) {
+        return res.status(400).json({ message: 'Faltan datos para editar la fruta' });
     }
 
-    const usuarios = readDB();
-    const usuarioIndex = usuarios.findIndex((user) => user.id === parseInt(id));
+    // Buscar la fruta por ID
+    const fruta = fruterias.find(f => f.id == id);
 
-    if (usuarioIndex === -1) {
-        return res.status(404).json({ error: 'Usuario no encontrado.' });
+    // Si no se encuentra la fruta, devolver un error
+    if (!fruta) {
+        return res.status(404).json({ message: 'Fruta no encontrada' });
     }
 
-    // Actualizar el usuario
-    usuarios[usuarioIndex].name = name || usuarios[usuarioIndex].name;
-    writeDB(usuarios);
+    // Actualizar los valores de la fruta
+    fruta.nombre = nombre;
+    fruta.cantidad = parseInt(cantidad, 10); // Convertir la cantidad a número entero
 
-    res.json({
-        message: 'Usuario actualizado',
-        user: usuarios[usuarioIndex],
-    });
+    // Responder con el mensaje de éxito y los detalles de la fruta actualizada
+    res.json({ message: 'Fruta actualizada', fruta });
 });
 
-// Ruta para eliminar un usuario por id
-app.delete('/users/:id', (req, res) => {
-    const { id } = req.params;
 
-    // Validar que el id sea un número
-    if (isNaN(id)) {
-        return res.status(400).json({ error: 'El ID debe ser un número válido.' });
+
+
+// Eliminar una fruta por ID (DELETE)
+app.delete('/frutas/:id', (req, res) => {
+    const { id } = req.params;  // Accedemos al parámetro 'id' de la URL
+
+    // Buscar la fruta por su ID
+    const index = fruterias.findIndex(f => f.id == id);  // Encuentra el índice de la fruta
+
+    // Si no se encuentra la fruta, devolvemos un error
+    if (index === -1) {
+        return res.status(404).json({ message: 'Fruta no encontrada' });
     }
 
-    const usuarios = readDB();
-    const newUsers = usuarios.filter((user) => user.id !== parseInt(id));
+    // Eliminar la fruta del array
+    fruterias.splice(index, 1);
 
-    if (usuarios.length === newUsers.length) {
-        return res.status(404).json({ error: 'Usuario no encontrado.' });
-    }
-
-    writeDB(newUsers);
-
-    res.status(204).send(); // No content
+    // Devolver una respuesta indicando que la fruta ha sido eliminada
+    res.json({ message: 'Fruta eliminada' });
 });
 
-// Servidor en escucha
-app.listen(3001, () => {
-    console.log('Servidor iniciado en http://localhost:3001');
+
+app.listen(PORT, () => {
+    console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
 });
