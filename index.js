@@ -5,18 +5,6 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Configurar manualmente los encabezados CORS para permitir solicitudes
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*'); // Permite todas las orígenes
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Métodos permitidos
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Encabezados permitidos
-    next();
-});
-
-// Manejar solicitudes preflight (OPTIONS)
-app.options('*', (req, res) => {
-    res.sendStatus(204); // No Content
-});
 
 let fruterias = [];
 
@@ -25,8 +13,7 @@ app.get('/frutas', (req, res) => {
     res.json(fruterias);
 });
 
-// Crear una nueva fruta (POST) - Ahora recibimos los datos por el cuerpo de la solicitud
-// Crear una nueva fruta (POST) - Recibir los datos por la URL
+// Crear una nueva fruta (POST) - Ahora recibimos los datos por la URL
 app.post('/frutas', (req, res) => {
     const { nombre, cantidad } = req.query;
 
@@ -69,9 +56,6 @@ app.put('/frutas/editar', (req, res) => {
     res.json({ message: 'Fruta actualizada', fruta });
 });
 
-
-
-
 // Eliminar una fruta por ID (DELETE)
 app.delete('/frutas/:id', (req, res) => {
     const { id } = req.params;  // Accedemos al parámetro 'id' de la URL
@@ -90,7 +74,6 @@ app.delete('/frutas/:id', (req, res) => {
     // Devolver una respuesta indicando que la fruta ha sido eliminada
     res.json({ message: 'Fruta eliminada' });
 });
-
 
 app.listen(PORT, () => {
     console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
